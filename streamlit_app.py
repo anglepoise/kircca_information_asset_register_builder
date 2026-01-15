@@ -107,7 +107,23 @@ with st.form("iar_form", clear_on_submit=True):
     with c3:
         last_audit = st.date_input("13. Date of Last Audit")
     with c4:
-        breach_found = st.selectbox("14. Breach Since Last Audit?", ["No", "Yes"])
+        # 14. Breach Detection
+        breach_found = st.selectbox("14. Has There Been a Breach Since the Last Audit?", ["No", "Yes"])
+
+        # Conditional Logic: This only triggers if "Yes" is selected above
+        if breach_found == "Yes":
+            # This date picker appears immediately underneath
+            breach_date = st.date_input("📅 Date of the Breach", help="Select the date the breach was identified")
+            
+            # 15. Follow-up Actions (Now only visible if a breach occurred)
+            breach_actions = st.selectbox(
+                "15. Have All Actions Which Arose Because of the Breach been Taken?", 
+                ["No", "Yes", "In Progress"]
+            )
+        else:
+            # If "No" is selected, we set these to None or N/A for your spreadsheet
+            breach_date = "N/A"
+            breach_actions = "N/A"
 
     submitted = st.form_submit_button("Append to Register")
 
