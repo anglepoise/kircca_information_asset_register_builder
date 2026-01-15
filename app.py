@@ -4,115 +4,95 @@ from datetime import date
 
 st.set_page_config(page_title="IAR Portal", layout="wide")
 
-# --- SIDEBAR HELP SECTION ---
-with st.sidebar:
-    st.title("📖 Guidance")
-    st.info("""
-    **What is an Information Asset?**
-    A body of information, defined and managed as a single entity, so it can be understood, shared, protected and exploited efficiently.
-    """)
-    st.divider()
-    st.markdown("""
-    ### Compliance Checklist
-    * [ ] Asset Name & Owner
-    * [ ] Security Classification
-    * [ ] Risks Identified
-    * [ ] Audit Dates
-    """)
-    st.warning("⚠️ Remember to download the CSV before closing this browser tab!")
+# --- DATA PERSISTENCE LOGIC ---
+if 'iar_list' not in st.session_state:
+    st.session_state.iar_list = pd.DataFrame()
 
-# --- PROGRESS TRACKING ---
-st.title("🛡️ Information Asset Register Portal")
-# Simple logic to calculate progress based on some key fields
-fields_to_check = ['asset_name', 'owner', 'purpose', 'location']
-completed = 0
-# (Internal logic to check session state for progress would go here)
+# --- SIDEBAR & UPLOAD ---
+with st.sidebar:
+    st.title("📂 Resume Progress")
+    uploaded_file = st.file_uploader("Upload an existing IAR (CSV)", type="csv")
+    
+    if uploaded_file is not None:
+        try:
+            # Load the uploaded file into session state
+            uploaded_df = pd.read_csv(uploaded_file)
+            st.session_state.iar_list = uploaded_df
+            st.success("Existing data loaded!")
+        except Exception as e:
+            st.error(f"Error loading file: {e}")
+
+    st.divider()
+    st.info("💡 **Tip:** Upload your previous file here to add new assets without starting from scratch.")
 
 # --- THE FORM ---
+st.title("🛡️ Information Asset Register Portal")
+
 with st.form("iar_form", clear_on_submit=True):
+    st.subheader("➕ Add New Asset Entry")
     
-    # Progress bar (Visual cue for user)
-    st.write("Current Entry Progress")
-    st.progress(0) # Starts at 0, you can update this based on input
-
-    col_left, col_right = st.columns([1, 1], gap="large")
-
-    with col_left:
-        st.subheader("📋 Core Identity")
-        asset_name = st.text_input("1. Information Asset Name*", placeholder="e.g., Client Billing Folder")
-        owner = st.text_input("6. Information Asset Owner*", placeholder="e.g., Jane Smith (Head of Finance)")
-        
-        st.divider()
-        st.subheader("🏢 Supply Chain")
+    # Grid Layout for Inputs
+    col1, col2 = st.columns(2)
+    with col1:
+        asset_name = st.text_input("1. Information Asset Name*")
+        owner = st.text_input("6. Asset Owner*")
         supplier = st.text_input("2a. Supplier Name")
-        contract_loc = st.text_input("2b. Contract Location", help="Where is the physical or digital contract stored?")
-        contract_dates = st.text_input("2c. Contract Dates", placeholder="e.g., 01/2024 - 01/2025")
-
-    with col_right:
-        st.subheader("🔍 Data Scope")
-        purpose = st.text_area("3. What & Why?", help="Detail the type of data and the business reason for keeping it.")
-        location = st.text_input("4. Location", placeholder="e.g., Azure Cloud, Locked Cabinet #4")
-        special_cat = st.radio("5. Does this contain special category data?", ["No", "Yes"], horizontal=True, help="Racial/ethnic origin, political opinions, health data, etc.")
-
-    st.divider()
-
-    # Shared Logic
-    st.subheader("🌐 External Sharing")
-    is_shared = st.selectbox("7. Is the Information Shared Externally?", 
-                            ["No", "Yes - Received from outside", "Yes - Shared externally", "Yes - Both"])
+        purpose = st.text_area("3. What & Why?")
     
-    if "Yes" in is_shared:
-        ropa_status = st.selectbox("8. Is this on the Record of Processing Activities (ROPA)?", ["Yes", "No", "Under Review"])
-    else:
-        ropa_status = "N/A"
-
-    st.divider()
-
-    # Risk & Audit
-    st.subheader("⚖️ Risk & Governance")
-    r1, r2 = st.columns(2)
-    with r1:
-        risks = st.text_area("9. Breach Risks", placeholder="e.g., Identity theft, financial loss...")
-        measures = st.text_area("10. Security Measures", placeholder="e.g., MFA, Encryption, Physical Keys...")
-    
-    with r2:
+    with col2:
+        location = st.text_input("4. Location")
+        is_shared = st.selectbox("7. Shared Externally?", ["No", "Yes"])
+        risks = st.text_area("9. Breach Risks")
         is_mobile = st.checkbox("📱 This is a Mobile Device")
-        if is_mobile:
-            st.caption("Please provide issuance details:")
-            d_issue = st.date_input("11. Date Issued", value=None)
-            d_return = st.date_input("12. Date Returned", value=None)
-        else:
-            d_issue, d_return = "N/A", "N/A"
 
-    # Final Audit Section
-    st.subheader("📅 Audit Trail")
-    a1, a2, a3 = st.columns(3)
-    with a1:
+    # Audit & Security (Simplified for brevity)
+    st.divider()
+    c3, c4 = st.columns(2)
+    with c3:
         last_audit = st.date_input("13. Date of Last Audit")
-    with a2:
+    with c4:
         breach_found = st.selectbox("14. Breach Since Last Audit?", ["No", "Yes"])
-    with a3:
-        if breach_found == "Yes":
-            breach_actions = st.selectbox("15. All Actions Taken?", ["Yes", "No", "In Progress"])
-        else:
-            breach_actions = "N/A"
 
-    # Submission
-    submitted = st.form_submit_button("✅ Save Asset to List")
-    
+    submitted = st.form_submit_button("Append to Register")
+
     if submitted:
         if not asset_name or not owner:
-            st.error("Missing required fields: Asset Name and Owner are mandatory.")
+            st.error("Please fill in the Asset Name and Owner.")
         else:
-            # Logic to save to session state (same as previous code)
-            st.session_state.iar_list.append({"Name": asset_name, "Owner": owner, "Audit": last_audit}) # etc
-            st.success("Asset added! Scroll down to see the table.")
+            # Create a dictionary for the new row
+            new_row = {
+                "Asset Name": asset_name,
+                "Owner": owner,
+                "Supplier": supplier,
+                "Purpose": purpose,
+                "Location": location,
+                "Shared Externally": is_shared,
+                "Breach Risks": risks,
+                "Mobile Device": "Yes" if is_mobile else "No",
+                "Last Audit": str(last_audit),
+                "Breach Since Audit": breach_found
+            }
+            
+            # Append new row to the session dataframe
+            new_df = pd.DataFrame([new_row])
+            st.session_state.iar_list = pd.concat([st.session_state.iar_list, new_df], ignore_index=True)
+            st.success(f"Added '{asset_name}' to the list!")
 
-# --- DATA TABLE & DOWNLOAD ---
-if st.session_state.iar_list:
+# --- DISPLAY & DOWNLOAD ---
+if not st.session_state.iar_list.empty:
     st.divider()
-    df = pd.DataFrame(st.session_state.iar_list)
-    st.dataframe(df, use_container_width=True)
-    
-    csv = df.to_csv(index=False).encode('utf-8')
-    st.download_button("📥 Download Excel-Ready Register (CSV)", data=csv, file_name="IAR_Complete.csv")
+    st.subheader("📑 Current Register Preview")
+    st.dataframe(st.session_state.iar_list, use_container_width=True)
+
+    # Export to CSV
+    csv_output = st.session_state.iar_list.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="📥 Download Updated IAR",
+        data=csv_output,
+        file_name=f"IAR_Export_{date.today()}.csv",
+        mime="text/csv"
+    )
+
+    if st.button("🗑️ Clear All Rows (Reset)"):
+        st.session_state.iar_list = pd.DataFrame()
+        st.rerun()
