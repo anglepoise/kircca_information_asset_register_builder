@@ -4,6 +4,20 @@ from datetime import date
 
 st.set_page_config(page_title="IAR Portal", layout="wide")
 
+st.markdown("""
+    <style>
+    .stForm {
+        background-color: #39542C;
+    }
+    /* This targets the labels above text inputs, select boxes, etc. */
+    label {
+        color: white !important;
+        font-weight: bold;
+        font-size: 1.6rem !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # --- DATA PERSISTENCE LOGIC ---
 if 'iar_list' not in st.session_state:
     st.session_state.iar_list = pd.DataFrame()
@@ -37,15 +51,26 @@ assets = [
     "Mobile Device",
 ]
 
+# Locations
+locations = [
+    "On-Premises",
+    "Off Site Storage",
+    "Cloud Storage",
+    "Third-Party Data Center",
+    "Local Server Room",
+    "Remote Workstations",
+]
+
 # Sort alphabetically
 assets_sorted = sorted(assets)
+locations_sorted = sorted(locations)
 
 # Add "Other" as the final option
 assets_sorted.append("Other")
-
+locations_sorted.append("Other")
 
 # --- THE FORM ---
-st.title("🛡️ Information Asset Register Portal")
+st.title("🛡️ Information Asset Register Portal (version 1.1)")
 
 with st.form("iar_form", clear_on_submit=True):
     st.subheader("➕ Add New Asset Entry")
@@ -56,15 +81,25 @@ with st.form("iar_form", clear_on_submit=True):
         # Streamlit selectbox
 
         asset_name = st.selectbox("1. Information Asset Name*", assets_sorted )
+        
+        # Other asset name input
+        other_value = None
+        if asset_name == "Other":
+            other_value = st.text_input("Please specify:")
+            st.write("TESTING Selected option:", asset_name)
+
+        if other_value:
+            st.write("TESTING Other value:", other_value)
+        
         owner = st.text_input("6. Asset Owner*")
         supplier = st.text_input("2a. Supplier Name")
         purpose = st.text_area("3. What & Why?")
     
     with col2:
-        location = st.text_input("4. Location")
+        location = st.selectbox("4. Location*", locations_sorted )
         is_shared = st.selectbox("7. Shared Externally?", ["No", "Yes"])
         risks = st.text_area("9. Breach Risks")
-        is_mobile = st.checkbox("📱 This is a Mobile Device")
+        # is_mobile = st.checkbox("📱 This is a Mobile Device")
 
     # Audit & Security (Simplified for brevity)
     st.divider()
